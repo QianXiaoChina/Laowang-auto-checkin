@@ -1,0 +1,19 @@
+# 核心依赖
+playwright>=1.45.0
+numpy>=1.26.0
+opencv-python>=4.9.0.80
+
+# 网络请求和页面解析
+requests>=2.31.0
+beautifulsoup4>=4.12.2
+
+# 图像处理
+Pillow>=10.0.0
+
+# 定时任务
+schedule>=1.2.0
+
+# 开发和测试工具（可选）
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.0.0

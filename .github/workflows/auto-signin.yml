@@ -1,20 +1,15 @@
-# .github/workflows/auto-signin.yml
+# !/.github/workflows/auto-signin.yml
 name: 老王论坛自动签到
 
 on:
   schedule:
-    # 北京时间凌晨 2 点执行（UTC 时间 18:00）
-    - cron: '0 18 * * *'
-  workflow_dispatch:
+    # 每天北京时间上午10点执行
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
   signin:
     runs-on: ubuntu-latest
-    
-    # 关键改动：把 secrets 提升到 job 级别的 env
-    env:
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
     
     steps:
     - name: 检出代码
@@ -41,8 +36,7 @@ jobs:
         echo '${{ secrets.COOKIES_JSON }}' > config/cookies.json
         
     - name: 创建Telegram配置
-      # 关键改动：if 里不能用 secrets，改用 env
-      if: env.TELEGRAM_BOT_TOKEN != ''
+      if: ${{ secrets.TELEGRAM_BOT_TOKEN != '' }}
       run: |
         echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> $GITHUB_ENV
         echo "TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}" >> $GITHUB_ENV
@@ -53,7 +47,7 @@ jobs:
         
     - name: 上传日志文件
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: signin-logs
         path: logs/
@@ -61,7 +55,7 @@ jobs:
         
     - name: 上传调试图片
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: debug-images
         path: data/debug_images/

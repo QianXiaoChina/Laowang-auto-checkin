@@ -1,22 +1,27 @@
-# !/.github/workflows/auto-signin.yml
+# .github/workflows/auto-signin.yml
 name: 老王论坛自动签到
 
 on:
   schedule:
-    # 每天北京时间上午10点执行
-    - cron: '0 2 * * *'
-  workflow_dispatch:  # 允许手动触发
+    # 北京时间凌晨 2 点执行（UTC 时间前一天 18:00）
+    - cron: '0 18 * * *'
+  workflow_dispatch:
 
 jobs:
   signin:
-    runs-on: ubuntu-latest
+    # 固定使用 Ubuntu 24.04，避免 ubuntu-latest 自动迁移到 26.04 带来的不确定性
+    runs-on: ubuntu-24.04
+    
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
     
     steps:
     - name: 检出代码
-      uses: actions/checkout@v4
-      
+      uses: actions/checkout@v7   # 已升级，支持 Node.js 24
+    
     - name: 设置Python环境
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6   # 已升级，支持 Node.js 24
       with:
         python-version: '3.11'
         
@@ -36,7 +41,7 @@ jobs:
         echo '${{ secrets.COOKIES_JSON }}' > config/cookies.json
         
     - name: 创建Telegram配置
-      if: ${{ secrets.TELEGRAM_BOT_TOKEN != '' }}
+      if: env.TELEGRAM_BOT_TOKEN != ''
       run: |
         echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> $GITHUB_ENV
         echo "TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}" >> $GITHUB_ENV
@@ -47,16 +52,18 @@ jobs:
         
     - name: 上传日志文件
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v6   # 已升级，支持 Node.js 24
       with:
         name: signin-logs
         path: logs/
         retention-days: 7
+        if-no-files-found: ignore   # 日志目录不存在时静默跳过，不报错
         
     - name: 上传调试图片
       if: failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v6   # 已升级，支持 Node.js 24
       with:
         name: debug-images
         path: data/debug_images/
         retention-days: 3
+        if-no-files-found: ignore   # 调试图片不存在时静默跳过，避免干扰真实错误

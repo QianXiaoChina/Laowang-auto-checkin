@@ -1,66 +1,68 @@
+# .github/workflows/auto-signin.yml
 name: 老王论坛自动签到
 
 on:
   schedule:
-    # 每天北京时间上午10点执行（UTC 2点）
-    - cron: '0 2 * * *'
-  workflow_dispatch:  # 允许手动触发
+    # 北京时间凌晨 2 点执行（UTC 时间 18:00）
+    - cron: '0 18 * * *'
+  workflow_dispatch:
 
 jobs:
   signin:
     runs-on: ubuntu-latest
-
+    
+    # 关键改动：把 secrets 提升到 job 级别的 env
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    
     steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-
-      - name: 设置Python环境
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: 安装依赖
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: 安装Playwright浏览器
-        run: |
-          playwright install chromium
-          playwright install-deps chromium
-
-      - name: 创建cookies文件
-        env:
-          COOKIES_JSON: ${{ secrets.COOKIES_JSON }}
-        run: |
-          mkdir -p config
-          printf '%s' "$COOKIES_JSON" > config/cookies.json
-
-      - name: 创建Telegram配置
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: |
-          if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
-            echo "TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN" >> $GITHUB_ENV
-            echo "TELEGRAM_CHAT_ID=$TELEGRAM_CHAT_ID" >> $GITHUB_ENV
-          fi
-
-      - name: 执行自动签到
-        run: python main.py --headless
-
-      - name: 上传日志文件
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: signin-logs
-          path: logs/
-          retention-days: 7
-
-      - name: 上传调试图片
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-images
-          path: data/debug_images/
-          retention-days: 3
+    - name: 检出代码
+      uses: actions/checkout@v4
+      
+    - name: 设置Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: 安装依赖
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: 安装Playwright浏览器
+      run: |
+        playwright install chromium
+        playwright install-deps chromium
+        
+    - name: 创建cookies文件
+      run: |
+        mkdir -p config
+        echo '${{ secrets.COOKIES_JSON }}' > config/cookies.json
+        
+    - name: 创建Telegram配置
+      # 关键改动：if 里不能用 secrets，改用 env
+      if: env.TELEGRAM_BOT_TOKEN != ''
+      run: |
+        echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> $GITHUB_ENV
+        echo "TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}" >> $GITHUB_ENV
+        
+    - name: 执行自动签到
+      run: |
+        python main.py --headless
+        
+    - name: 上传日志文件
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: signin-logs
+        path: logs/
+        retention-days: 7
+        
+    - name: 上传调试图片
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: debug-images
+        path: data/debug_images/
+        retention-days: 3
